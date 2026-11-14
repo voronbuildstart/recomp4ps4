@@ -1,0 +1,69 @@
+{
+  "id": "mp3",
+  "title": "Mario Party 3: Recompiled",
+  "repo": "https://github.com/n64hub/mario-party-3-recomp.git",
+  "repo_dir": "mario-party-3-recomp",
+  "exe": "MarioParty3Recompiled",
+  "rom": {
+    "name": "marioparty3.us.z64",
+    "region": "USA",
+    "sha1": "6beb80ff822b96bcf85dcdb512e8b2b7969d8259",
+    "size_bytes": 33554432
+  },
+  "pc": {
+    "cmake_min": "3.31",
+    "build_type": "RelWithDebInfo",
+    "build_dir": "build",
+    "needs_submodules": true,
+    "rom_at_build": true,
+    "rom_path_in_repo": "roms/marioparty3.us.z64",
+    "deps": [
+      "sdl2",
+      "gtk+-3.0",
+      "freetype2",
+      "vulkan"
+    ],
+    "steps": [
+      "bash tools/recompile.sh -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang",
+      "cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang -DPATCHES_C_COMPILER=clang -DPATCHES_LD=ld.lld",
+      "ninja -C build MarioParty3Recompiled"
+    ]
+  },
+  "ps4": {
+    "title_id": "MPRT00001",
+    "data_dir": "/data/MarioParty3",
+    "pkg_name": "MarioParty3-Recompiled",
+    "content_label": "MARIOPARTY3",
+    "project_name": "MP3RecompPS4",
+    "build_root": "mp3-build",
+    "replacements": {
+      "CBFD00064": "MPRT00001",
+      "/data/Conker": "/data/MarioParty3",
+      "CONKERRECOMPPS4": "MP3RECOMPPS4",
+      "CONKER_PS4_DIR": "MP3_PS4_DIR",
+      "Conker-v": "MarioParty3-Recompiled-v",
+      "ConkerRecomp": "MP3RecompPS4",
+      "cbfd-build": "mp3-build",
+      "CBFD-Recompiled": "mario-party-3-recomp",
+      "baserom.us.z64": "marioparty3.us.z64",
+      "CONKER_VERSION": "MP3_VERSION",
+      "Conker's Bad Fur Day: Recompiled": "Mario Party 3: Recompiled",
+      "Conker's Bad Fur Day": "Mario Party 3",
+      "Conker-PS4": "MP3-PS4",
+      "Conker": "Mario Party 3",
+      "conker.log": "marioparty3.log",
+      "conker.prev.log": "marioparty3.prev.log",
+      "conker": "mp3"
+    }
+  },
+  "docs": {
+    "readme": "https://raw.githubusercontent.com/n64hub/mario-party-3-recomp/main/README.md",
+    "building": "https://raw.githubusercontent.com/n64hub/mario-party-3-recomp/main/README.md"
+  },
+  "notes": [
+    "Exact USA ROM required: 32 MiB, SHA-1 6beb80ff822b96bcf85dcdb512e8b2b7969d8259.",
+    "Supports up to 4 players; on PS4 each player needs their own DualShock 4.",
+    "This upstream repo is AI-written (GPL-3.0). If quality issues appear, the fallback is Rainchus/MarioParty3-Recomp.",
+    "Patches need a clang with the MIPS target enabled (doctor checks this)."
+  ]
+}

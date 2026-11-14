@@ -1,0 +1,20 @@
+# ROMs are never committed. Bring your own dump; keep it out of the repo.
+projects/roms/
+
+# Built packages are personal-use only (they contain derived game code). Never ship them.
+out/
+
+# Scratch clones that the setup steps re-create on demand.
+projects/_N64Recomp/
+projects/_template-conker-ps4/
+projects/mario-party-3-recomp/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Logs and editor/OS junk
+*.log
+.DS_Store
+Thumbs.db
+*~

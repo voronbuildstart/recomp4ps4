@@ -1,0 +1,70 @@
+{
+  "id": "hm64",
+  "title": "Harvest Moon 64: Recompiled",
+  "repo": "https://github.com/HarvestMoon64Recomp/HarvestMoon64Recomp.git",
+  "repo_dir": "HarvestMoon64Recomp",
+  "exe": "HarvestMoon64Recompiled",
+  "rom": {
+    "name": "hm64.us.z64",
+    "region": "North America (US)",
+    "sha1": "90631460f1876a14849df0541d534012b410a34c",
+    "size_bytes": 16777216
+  },
+  "pc": {
+    "cmake_min": "3.20",
+    "build_type": "Release",
+    "build_dir": "build-cmake",
+    "needs_submodules": true,
+    "rom_at_build": true,
+    "rom_path_in_repo": "hm64.us.z64",
+    "deps": [
+      "sdl2",
+      "gtk+-3.0",
+      "freetype2",
+      "vulkan"
+    ],
+    "steps": [
+      "@n64recomp",
+      "./N64Recomp hm64.us.toml",
+      "./RSPRecomp n_aspMain.toml",
+      "cmake -S . -B build-cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++",
+      "cmake --build build-cmake --target HarvestMoon64Recompiled --parallel {nproc}"
+    ]
+  },
+  "ps4": {
+    "title_id": "HARV00001",
+    "data_dir": "/data/HarvestMoon64",
+    "pkg_name": "HarvestMoon64-Recompiled",
+    "content_label": "HARVESTMOON64",
+    "project_name": "HM64RecompPS4",
+    "build_root": "hm64-build",
+    "replacements": {
+      "CBFD00064": "HARV00001",
+      "/data/Conker": "/data/HarvestMoon64",
+      "CONKERRECOMPPS4": "HM64RECOMPPS4",
+      "CONKER_PS4_DIR": "HM64_PS4_DIR",
+      "Conker-v": "HarvestMoon64-Recompiled-v",
+      "ConkerRecomp": "HM64RecompPS4",
+      "cbfd-build": "hm64-build",
+      "CBFD-Recompiled": "HarvestMoon64Recomp",
+      "baserom.us.z64": "hm64.us.z64",
+      "CONKER_VERSION": "HM64_VERSION",
+      "Conker's Bad Fur Day: Recompiled": "Harvest Moon 64: Recompiled",
+      "Conker's Bad Fur Day": "Harvest Moon 64",
+      "Conker-PS4": "HM64-PS4",
+      "Conker": "Harvest Moon 64",
+      "conker.log": "harvestmoon64.log",
+      "conker.prev.log": "harvestmoon64.prev.log",
+      "conker": "hm64"
+    }
+  },
+  "docs": {
+    "readme": "https://raw.githubusercontent.com/HarvestMoon64Recomp/HarvestMoon64Recomp/main/README.md",
+    "building": "https://raw.githubusercontent.com/HarvestMoon64Recomp/HarvestMoon64Recomp/main/BUILDING.md"
+  },
+  "notes": [
+    "US ROM required, both to build (hm64.us.z64 at repo root) and to run.",
+    "Use a standard ROM, not a decompressed one (per upstream BUILDING.md).",
+    "Original framerate is fine on PS4; RT64 CPU cost is low for this game's scenes."
+  ]
+}
