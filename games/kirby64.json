@@ -1,0 +1,71 @@
+{
+  "id": "kirby64",
+  "title": "Kirby 64: The Crystal Shards: Recompiled",
+  "repo": "https://github.com/Kirby64Ret/Kirby64Recomp.git",
+  "repo_dir": "Kirby64Recomp",
+  "exe": "Kirby64Recompiled",
+  "rom": {
+    "name": "NK4E.z64",
+    "region": "USA",
+    "sha1": "6cea2d46b929a3bb347b060a77fccc83526fb855",
+    "size_bytes": 33554432
+  },
+  "pc": {
+    "cmake_min": "3.20",
+    "build_type": "Release",
+    "build_dir": "build-pc",
+    "needs_submodules": true,
+    "rom_at_build": true,
+    "rom_path_in_repo": "NK4E.z64",
+    "n64recomp_subdir": "build-pc/N64Recomp",
+    "deps": [
+      "sdl2",
+      "freetype2",
+      "vulkan"
+    ],
+    "steps": [
+      "@n64recomp",
+      "build-pc/N64Recomp/N64Recomp NK4E.toml",
+      "build-pc/N64Recomp/RSPRecomp n_aspMain.toml",
+      "cmake -S . -B build-pc -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-21 -DCMAKE_CXX_COMPILER=clang++-21 -DPATCHES_C_COMPILER=clang-21 -DPATCHES_LD=ld.lld-21 -DPATCHES_OBJCOPY=llvm-objcopy-21",
+      "cmake --build build-pc --target Kirby64Recompiled --parallel {nproc}"
+    ]
+  },
+  "ps4": {
+    "title_id": "KIRB00001",
+    "data_dir": "/data/Kirby64",
+    "pkg_name": "Kirby64-Recompiled",
+    "content_label": "KIRBY64",
+    "project_name": "Kirby64Recompiled",
+    "build_root": "kirby64-build",
+    "replacements": {
+      "CBFD00064": "KIRB00001",
+      "/data/Conker": "/data/Kirby64",
+      "CONKERRECOMPPS4": "KIRBY64RECOMPPS4",
+      "CONKER_PS4_DIR": "KIRBY64_PS4_DIR",
+      "CONKER_VERSION": "KIRBY64_VERSION",
+      "Conker-v-": "Kirby64-Recompiled-v-",
+      "ConkerRecomp": "Kirby64Recomp",
+      "cbfd-build": "kirby64-build",
+      "CBFD-Recompiled": "Kirby64Recomp",
+      "baserom.us.z64": "NK4E.z64",
+      "Conker's Bad Fur Day: Recompiled": "Kirby 64: The Crystal Shards: Recompiled",
+      "Conker's Bad Fur Day": "Kirby 64: The Crystal Shards",
+      "Conker-PS4": "Kirby64-PS4",
+      "Conker": "Kirby 64",
+      "conker.log": "kirby64.log",
+      "conker.prev.log": "kirby64.prev.log",
+      "conker": "kirby64"
+    }
+  },
+  "docs": {
+    "readme": "https://raw.githubusercontent.com/Kirby64Ret/Kirby64Recomp/dev/README.md",
+    "building": "https://raw.githubusercontent.com/Kirby64Ret/Kirby64Recomp/dev/README.md"
+  },
+  "notes": [
+    "USA ROM required (NK4E), 32 MiB, SHA-1 6cea2d46b929a3bb347b060a77fccc83526fb855. It must be named NK4E.z64 at the repo root to build.",
+    "Upstream Kirby64Recomp is a work-in-progress fork of Zelda64Recomp (dev branch); this recipe pins the build to clang 21 as upstream documents.",
+    "The PS4 workspace in projects/kirby64-ps4 is hand-maintained (the generated template needs host-specific wiring for this game).",
+    "Kirby 64 creates many guest threads; the PS4 port maps them onto the console's 7 cores with priority classes."
+  ]
+}

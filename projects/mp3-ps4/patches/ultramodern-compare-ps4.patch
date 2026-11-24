@@ -1,0 +1,11 @@
+--- a/lib/N64ModernRuntime/ultramodern/include/ultramodern/config.hpp
++++ b/lib/N64ModernRuntime/ultramodern/include/ultramodern/config.hpp
+@@ -3,6 +3,8 @@
+ 
+ #include <string>
+ #include <optional>
++// PS4 string_view fix: OpenOrbis libc++ needs <compare> for defaulted <=>.
++#include <compare>
+ 
+ #include "json/json.hpp"
+ 

@@ -1,0 +1,67 @@
+{
+  "id": "gauntlet",
+  "title": "Gauntlet Legends: Recompiled",
+  "repo": "https://github.com/Auxnon/gauntlet-legends-recomp.git",
+  "repo_dir": "GauntletLegendsRecomp",
+  "exe": "GauntletRecompiled",
+  "rom": {
+    "name": "gauntlet.us.z64",
+    "region": "USA",
+    "sha1": "0489dcce749c6a5102681d288ed0616a4b94e99d",
+    "size_bytes": 16777216
+  },
+  "pc": {
+    "cmake_min": "3.20",
+    "build_type": "Release",
+    "build_dir": "build-pc",
+    "needs_submodules": true,
+    "rom_at_build": false,
+    "deps": [
+      "sdl2",
+      "freetype2",
+      "vulkan"
+    ],
+    "steps": [
+      "cmake -S . -B build-pc -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang-21 -DCMAKE_CXX_COMPILER=clang-21",
+      "cmake --build build-pc --target GauntletRecompiled --parallel {nproc}"
+    ]
+  },
+  "ps4": {
+    "title_id": "GAUN00001",
+    "data_dir": "/data/Gauntlet",
+    "pkg_name": "GauntletLegends-Recompiled",
+    "content_label": "GAUNTLET",
+    "project_name": "GauntletRecompiled",
+    "build_root": "gauntlet-build",
+    "replacements": {
+      "CBFD00064": "GAUN00001",
+      "/data/Conker": "/data/Gauntlet",
+      "CONKERRECOMPPS4": "GAUNTLETRECOMP",
+      "CONKER_PS4_DIR": "GAUNTLET_PS4_DIR",
+      "CONKER_VERSION": "GAUNTLET_VERSION",
+      "Conker-v-": "GauntletLegends-Recompiled-v-",
+      "ConkerRecomp": "GauntletRecomp",
+      "cbfd-build": "gauntlet-build",
+      "CBFD-Recompiled": "GauntletLegendsRecomp",
+      "baserom.us.z64": "gauntlet.us.z64",
+      "Conker's Bad Fur Day: Recompiled": "Gauntlet Legends: Recompiled",
+      "Conker's Bad Fur Day": "Gauntlet Legends",
+      "Conker-PS4": "Gauntlet-PS4",
+      "Conker": "Gauntlet Legends",
+      "conker.log": "gauntlet.log",
+      "conker.prev.log": "gauntlet.prev.log",
+      "conker": "gauntlet"
+    }
+  },
+  "docs": {
+    "readme": "https://raw.githubusercontent.com/Auxnon/gauntlet-legends-recomp/main/README.md",
+    "building": "https://raw.githubusercontent.com/Auxnon/gauntlet-legends-recomp/main/README.md"
+  },
+  "notes": [
+    "USA ROM required (NGXE), 16 MiB, SHA-1 0489dcce749c6a5102681d288ed0616a4b94e99d.",
+    "Recompiled game code is generated from the matching decomp (Drahsid/gauntlet-legends) via n64sym/elf2syms, not directly from a bare ROM. Keep generated/ and RecompiledFuncs/ from the PC build.",
+    "No launcher UI: ROM path comes from argv on PC and is replaced with a staged /app0 path on PS4.",
+    "The PC TLB shim uses memfd/mmap and is rewritten for PS4 virtual-range reservation and direct-memory commits.",
+    "Upstream is experimental: audio is skipped, level overlays untested."
+  ]
+}

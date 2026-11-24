@@ -1,0 +1,9 @@
+Base revisions of the PS4 patches (Kirby64Recomp's own patches applied first, see save-patch.sh)
+Kirby64Recomp  https://github.com/Kirby64Ret/Kirby64Recomp  480ed7e2a3160087bbe5f680f08e601eef7a4d69
+lib/N64Recomp  
+lib/N64ModernRuntime  03f8833075017415f8456176fefa720a560401cd (checkout 03f8833)
+lib/N64ModernRuntime/N64Recomp/lib/sljit   (checkout f632608)
+lib/rt64  ada6cc62c421b142d9d90154765e44348115bd9e (checkout ada6cc6)
+lib/kirby64  6af77d05cd2b851b4a009a8249022c4d02082168 (checkout 6af77d0)
+SDL2  https://github.com/libsdl-org/SDL  release-2.32.10
+FreeType  https://gitlab.freedesktop.org/freetype/freetype  VER-2-13-3

@@ -1,0 +1,88 @@
+diff --git a/ultramodern/include/ultramodern/ultramodern.hpp b/ultramodern/include/ultramodern/ultramodern.hpp
+index db45ee4..c2dd0dc 100644
+--- a/ultramodern/include/ultramodern/ultramodern.hpp
++++ b/ultramodern/include/ultramodern/ultramodern.hpp
+@@ -2,6 +2,7 @@
+ #define __ultramodern_HPP__
+ 
+ #include <thread>
++#include <atomic>
+ #include <cassert>
+ #include <stdexcept>
+ #include <span>
+@@ -25,6 +26,10 @@ struct UltraThreadContext {
+     std::thread host_thread;
+     moodycamel::LightweightSemaphore running;
+     moodycamel::LightweightSemaphore initialized;
++    // PS4: the game's scheduler queue can end up holding a thread whose host thread has already
++    // returned (a stale context after a self-destroy or corrupted queue). Skip those instead of
++    // signalling a semaphore nobody will ever wait on.
++    std::atomic<bool> alive{ true };
+ };
+ 
+ namespace ultramodern {
+diff --git a/ultramodern/src/threads.cpp b/ultramodern/src/threads.cpp
+index 812c556..9956c09 100644
+--- a/ultramodern/src/threads.cpp
++++ b/ultramodern/src/threads.cpp
+@@ -160,14 +160,49 @@ void resume_thread(OSThread* t) {
+     t->context->running.signal();
+ }
+ 
++// PS4 hang recovery: the watchdog can see that no guest was scheduled for several seconds and
++// kick the run queue. The recomp runtime has no global rdram pointer, so remember the one the
++// scheduler was last called with.
++static uint8_t* g_scheduler_rdram = nullptr;
++static std::atomic<uint64_t> g_schedule_generation{ 0 };
++
++extern "C" uint64_t ps4_scheduler_generation(void) {
++    return g_schedule_generation.load(std::memory_order_acquire);
++}
++
++extern "C" int ps4_scheduler_kick(void) {
++    uint8_t* rdram = g_scheduler_rdram;
++    if (rdram == nullptr || ultramodern::thread_queue_empty(PASS_RDRAM ultramodern::running_queue))
++        return 0;
++    OSThread* to_run = TO_PTR(OSThread, ultramodern::thread_queue_pop(PASS_RDRAM ultramodern::running_queue));
++    if (to_run == nullptr || to_run->context == nullptr || !to_run->context->alive.load(std::memory_order_acquire))
++        return 0;
++    fprintf(stderr, "[Scheduling] watchdog resumed thread %d\n", to_run->id);
++    to_run->context->running.signal();
++    g_schedule_generation.fetch_add(1, std::memory_order_release);
++    return 1;
++}
++
+ void run_next_thread(RDRAM_ARG1) {
+-    if (ultramodern::thread_queue_empty(PASS_RDRAM ultramodern::running_queue)) {
++    g_scheduler_rdram = rdram;
++    OSThread* to_run = nullptr;
++    while (!ultramodern::thread_queue_empty(PASS_RDRAM ultramodern::running_queue)) {
++        to_run = TO_PTR(OSThread, ultramodern::thread_queue_pop(PASS_RDRAM ultramodern::running_queue));
++        UltraThreadContext* context = to_run->context;
++        if (context != nullptr && context->alive.load(std::memory_order_acquire))
++            break;
++        // A finished thread can be left in the run queue by the game (or by stack corruption).
++        // Signalling its semaphore wakes nobody, so all the other guests wait forever.
++        fprintf(stderr, "[Scheduling] skipping dead thread %d\n", to_run->id);
++        to_run = nullptr;
++    }
++    if (to_run == nullptr) {
+         throw std::runtime_error("No threads left to run!\n");
+     }
+ 
+-    OSThread* to_run = TO_PTR(OSThread, ultramodern::thread_queue_pop(PASS_RDRAM ultramodern::running_queue));
+     debug_printf("[Scheduling] Resuming execution of thread %d\n", to_run->id);
+     to_run->context->running.signal();
++    g_schedule_generation.fetch_add(1, std::memory_order_release);
+ }
+ 
+ void ultramodern::run_next_thread_and_wait(RDRAM_ARG1) {
+@@ -218,6 +253,8 @@ static void _thread_func(RDRAM_ARG PTR(OSThread) self_, PTR(thread_func_t) entry
+ 
+     // Check if the thread hasn't been destroyed or replaced. If so, then the thread terminated or destroyed itself,
+     // so mark this thread as destroyed and run the next queued thread.
++    thread_context->alive.store(false, std::memory_order_release);
++    fprintf(stderr, "[Thread] Thread %d returned\n", self->id);
+     if (self->context == thread_context) {
+         self->context = nullptr;
+         run_next_thread(PASS_RDRAM1);

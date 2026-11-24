@@ -1,0 +1,58 @@
+diff --git a/include/hlsl++/platforms/sse.h b/include/hlsl++/platforms/sse.h
+index 764fe90..9640660 100644
+--- a/include/hlsl++/platforms/sse.h
++++ b/include/hlsl++/platforms/sse.h
+@@ -18,7 +18,7 @@
+ 
+ 	#endif
+ 
+-	#if defined(__AVX__)
++	#if defined(__AVX__) && !defined(__PS4__) && !defined(__ORBIS__)
+ 	
+ 		#if !defined(__SSE4_1__)
+ 		#define __SSE4_1__ 1
+@@ -63,7 +63,7 @@ typedef __m128i n128i;
+ typedef __m128i n128u;
+ typedef __m128d n128d;
+ 
+-#if defined(__AVX__)
++#if defined(__AVX__) && !defined(__PS4__) && !defined(__ORBIS__)
+ 
+ // Whether the float8 type is available
+ #define HLSLPP_FLOAT8
+@@ -218,7 +218,7 @@ hlslpp_inline __m128 _hlslpp_round_ps(__m128 x)
+ // Equivalent to shuffle(x, x, Y, Y, W, W)
+ #define _hlslpp_movehdup_ps(x)					_mm_movehdup_ps((x))
+ 
+-#if defined(__AVX__)
++#if defined(__AVX__) && !defined(__PS4__) && !defined(__ORBIS__)
+ #define _hlslpp_perm_ps(x, X, Y, Z, W) _mm_permute_ps((x), HLSLPP_SHUFFLE_MASK(X, Y, Z, W))
+ #else
+ 
+@@ -393,7 +393,7 @@ hlslpp_inline void _hlslpp_load4x4_ps(float* p, n128& x0, n128& x1, n128& x2, n1
+ // Float 256
+ //----------
+ 
+-#if defined(__AVX__)
++#if defined(__AVX__) && !defined(__PS4__) && !defined(__ORBIS__)
+ 
+ #define _hlslpp256_set1_ps(x)						_mm256_set1_ps((x))
+ 
+@@ -889,7 +889,7 @@ hlslpp_inline void _hlslpp_load4_epi32(int32_t* p, n128i& x)
+ // Integer 256
+ //------------
+ 
+-#if defined(__AVX__)
++#if defined(__AVX__) && !defined(__PS4__) && !defined(__ORBIS__)
+ 
+ #define _hlslpp256_set1_epi32(x)						_mm256_set1_epi32((x))
+ #define _hlslpp256_set_epi32(x, y, z, w, a, b, c, d)	_mm256_set_epi32(d, c, b, a, w, z, y, x)
+@@ -1376,7 +1376,7 @@ hlslpp_inline void _hlslpp_load4_pd(double* p, n128d& x0, n128d& x1)
+ // Double 256
+ //-----------
+ 
+-#if defined(__AVX__)
++#if defined(__AVX__) && !defined(__PS4__) && !defined(__ORBIS__)
+ 
+ #define _hlslpp256_set1_pd(x)					_mm256_set1_pd((x))
+ #define _hlslpp256_set_pd(x, y, z, w)			_mm256_set_pd((w), (z), (y), (x))

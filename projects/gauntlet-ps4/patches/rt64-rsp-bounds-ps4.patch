@@ -1,0 +1,87 @@
+--- a/src/hle/rt64_rsp.cpp
++++ b/src/hle/rt64_rsp.cpp
+@@ -5,6 +5,7 @@
+ #include "rt64_rsp.h"
+ 
+ #include <cassert>
++#include <cstdio>
+ 
+ #include "../include/rt64_extended_gbi.h"
+ #include "common/rt64_common.h"
+@@ -744,8 +745,28 @@
+         const bool forceBranch = state->ext.enhancementConfig->f3dex.forceBranch || extended.forceBranch;
+         const int workloadCursor = state->ext.workloadQueue->writeCursor;
+         const Workload &workload = state->ext.workloadQueue->workloads[workloadCursor];
++        if (vtxIndex >= RSP_MAX_VERTICES) {
++            static uint32_t logged = 0;
++            if (logged++ < 8) {
++                fprintf(stderr, "[RT64] branchZ: vertex index %u out of range\n", vtxIndex);
++            }
++            return;
++        }
+         const uint32_t globalIndex = indices[vtxIndex];
+-        const float screenZ = workload.drawData.posScreen[globalIndex][2] * DepthRange;
++        const auto &posScreen = workload.drawData.posScreen;
++        // The vertex cache survives across display lists, but the workload's output arrays are
++        // rebuilt every frame. A branch can therefore reference a stale index from a previous
++        // frame; reading it here walks off the end of posScreen and faults. Skip the branch in
++        // that case instead of dereferencing an invalid vertex.
++        if (globalIndex >= posScreen.size()) {
++            static uint32_t logged = 0;
++            if (logged++ < 8) {
++                fprintf(stderr, "[RT64] branchZ: stale vertex %u -> global %u (have %u)\n",
++                    vtxIndex, globalIndex, (uint32_t)posScreen.size());
++            }
++            return;
++        }
++        const float screenZ = posScreen[globalIndex][2] * DepthRange;
+         const float zValueFloat = zValue / 65536.0f;
+         if (forceBranch || (screenZ < zValueFloat)) {
+             const uint32_t rdramAddress = fromSegmentedMasked(branchDl);
+@@ -757,8 +778,24 @@
+         const bool forceBranch = state->ext.enhancementConfig->f3dex.forceBranch || extended.forceBranch;
+         const int workloadCursor = state->ext.workloadQueue->writeCursor;
+         const Workload &workload = state->ext.workloadQueue->workloads[workloadCursor];
++        if (vtxIndex >= RSP_MAX_VERTICES) {
++            static uint32_t logged = 0;
++            if (logged++ < 8) {
++                fprintf(stderr, "[RT64] branchW: vertex index %u out of range\n", vtxIndex);
++            }
++            return;
++        }
+         const uint32_t globalIndex = indices[vtxIndex];
+-        const float posW = workload.drawData.posTransformed[globalIndex][3];
++        const auto &posTransformed = workload.drawData.posTransformed;
++        if (globalIndex >= posTransformed.size()) {
++            static uint32_t logged = 0;
++            if (logged++ < 8) {
++                fprintf(stderr, "[RT64] branchW: stale vertex %u -> global %u (have %u)\n",
++                    vtxIndex, globalIndex, (uint32_t)posTransformed.size());
++            }
++            return;
++        }
++        const float posW = posTransformed[globalIndex][3];
+         if (forceBranch || (posW < static_cast<float>(wValue))) {
+             const uint32_t rdramAddress = fromSegmentedMasked(branchDl);
+             *dl = reinterpret_cast<DisplayList *>(state->fromRDRAM(rdramAddress)) - 1;
+@@ -1069,8 +1106,19 @@
+     }
+ 
+     void RSP::vertexTestZ(uint8_t vtxIndex) {
++        const int workloadCursor = state->ext.workloadQueue->writeCursor;
++        const Workload &workload = state->ext.workloadQueue->workloads[workloadCursor];
++        const uint32_t globalIndex = indices[vtxIndex];
++        if (globalIndex >= workload.drawData.vertexCount()) {
++            static uint32_t logged = 0;
++            if (logged++ < 8) {
++                fprintf(stderr, "[RT64] vertexTestZ: stale vertex %u -> global %u (have %u)\n",
++                    vtxIndex, globalIndex, (uint32_t)workload.drawData.vertexCount());
++            }
++            return;
++        }
+         extended.drawExtendedType = DrawExtendedType::VertexTestZ;
+-        extended.drawExtendedData.vertexTestZ.vertexIndex = indices[vtxIndex];
++        extended.drawExtendedData.vertexTestZ.vertexIndex = globalIndex;
+         state->updateDrawStatusAttribute(DrawAttribute::ExtendedType);
+         drawIndexedTri(vtxIndex, vtxIndex, vtxIndex, false);
+         extended.drawExtendedType = DrawExtendedType::None;

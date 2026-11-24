@@ -1,0 +1,48 @@
+--- a/lib/N64ModernRuntime/N64Recomp/src/mod_symbols.cpp
++++ b/lib/N64ModernRuntime/N64Recomp/src/mod_symbols.cpp
+@@ -298,7 +298,8 @@
+             return false;
+         }
+ 
+-        std::string_view mod_id{ string_data + mod_id_start, string_data + mod_id_start + mod_id_size };
++        // PS4 string_view fix: this libc++ has no iterator-pair constructor.
++        std::string_view mod_id{ string_data + mod_id_start, mod_id_size };
+         mod_context.add_dependency(std::string{mod_id});
+     }
+ 
+@@ -326,7 +327,7 @@
+             return false;
+         }
+ 
+-        std::string_view import_name{ string_data + name_start, string_data + name_start + name_size };
++        std::string_view import_name{ string_data + name_start, name_size };
+ 
+         mod_context.add_import_symbol(std::string{import_name}, dependency_index);
+     }
+@@ -349,7 +350,7 @@
+             return false;
+         }
+ 
+-        std::string_view dependency_event_name{ string_data + name_start, string_data + name_start + name_size };
++        std::string_view dependency_event_name{ string_data + name_start, name_size };
+ 
+         size_t dummy_dependency_event_index;
+         mod_context.add_dependency_event(std::string{dependency_event_name}, dependency_index, dummy_dependency_event_index);
+@@ -394,7 +395,7 @@
+             return false;
+         }
+ 
+-        std::string_view export_name_view{ string_data + name_start, string_data + name_start + name_size };
++        std::string_view export_name_view{ string_data + name_start, name_size };
+         std::string export_name{export_name_view};
+ 
+         if (!mod_context.functions[func_index].name.empty()) {
+@@ -456,7 +457,7 @@
+             return false;
+         }
+ 
+-        std::string_view import_name{ string_data + name_start, string_data + name_start + name_size };
++        std::string_view import_name{ string_data + name_start, name_size };
+ 
+         mod_context.add_event_symbol(std::string{import_name});
+     }

@@ -1,0 +1,17 @@
+--- a/lib/N64ModernRuntime/ultramodern/src/error_handling.cpp
++++ b/lib/N64ModernRuntime/ultramodern/src/error_handling.cpp
+@@ -1,4 +1,6 @@
++// PS4 string_view fix: OpenOrbis libc++ has no std::quick_exit.
+ #include <cstdio>
++#include <stdlib.h>
+ 
+ #include "ultramodern/error_handling.hpp"
+ 
+@@ -24,6 +26,6 @@
+ #ifdef __APPLE__
+     std::_Exit(exit_status);
+ #else
+-    std::quick_exit(exit_status);
++    ::quick_exit(exit_status);
+ #endif
+ }

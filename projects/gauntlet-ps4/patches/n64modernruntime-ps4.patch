@@ -1,0 +1,174 @@
+diff --git a/librecomp/src/recomp.cpp b/librecomp/src/recomp.cpp
+index 850689d..16e5a94 100644
+--- a/librecomp/src/recomp.cpp
++++ b/librecomp/src/recomp.cpp
+@@ -25,6 +25,10 @@
+ #include "librecomp/mods.hpp"
+ #include "recompiler/live_recompiler.h"
+ 
++#if defined(__PS4__)
++#include "ps4_platform.h"
++#endif
++
+ #ifdef _WIN32
+ #    define WIN32_LEAN_AND_MEAN
+ #    include <Windows.h>
+@@ -935,7 +939,11 @@ void recomp::start(const recomp::Configuration& cfg) {
+     // that initializes to zero. Protect the region above the memory size to catch accesses to invalid addresses.
+     uint8_t* rdram;
+     bool alloc_failed;
+-#ifdef _WIN32
++#if defined(__PS4__)
++    // No overcommit on the PS4: a virtual range reservation, with RDRAM backed by direct memory.
++    rdram = static_cast<uint8_t*>(ps4_vm_reserve(allocation_size));
++    alloc_failed = rdram == nullptr || ps4_vm_commit(rdram, mem_size) != 0;
++#elif defined(_WIN32)
+     rdram = reinterpret_cast<uint8_t*>(VirtualAlloc(nullptr, allocation_size, MEM_COMMIT | MEM_RESERVE, PAGE_NOACCESS));
+     DWORD old_protect = 0;
+     alloc_failed = (rdram == nullptr);
+diff --git a/ultramodern/include/ultramodern/config.hpp b/ultramodern/include/ultramodern/config.hpp
+index 2f22456..203b954 100644
+--- a/ultramodern/include/ultramodern/config.hpp
++++ b/ultramodern/include/ultramodern/config.hpp
+@@ -1,6 +1,7 @@
+ #ifndef __CONFIG_HPP__
+ #define __CONFIG_HPP__
+ 
++#include <compare>
+ #include <string>
+ #include <optional>
+ 
+diff --git a/ultramodern/include/ultramodern/renderer_context.hpp b/ultramodern/include/ultramodern/renderer_context.hpp
+index d60c4ec..d623a2a 100644
+--- a/ultramodern/include/ultramodern/renderer_context.hpp
++++ b/ultramodern/include/ultramodern/renderer_context.hpp
+@@ -54,7 +54,7 @@ namespace ultramodern {
+             auto operator<=>(const WindowHandle&) const = default;
+         };
+ // TODO add a native window handle option here (Display/Window for x11 and ANativeWindow for Android) as a compile-time option.
+-#elif defined(__linux__) || defined(__ANDROID__)
++#elif defined(__linux__) || defined(__ANDROID__) || defined(__PS4__)
+         using WindowHandle = SDL_Window*;
+ #elif defined(__APPLE__)
+         struct WindowHandle {
+diff --git a/ultramodern/src/error_handling.cpp b/ultramodern/src/error_handling.cpp
+index 8ca779e..e5b6935 100644
+--- a/ultramodern/src/error_handling.cpp
++++ b/ultramodern/src/error_handling.cpp
+@@ -1,4 +1,5 @@
+ #include <cstdio>
++#include <cstdlib>
+ 
+ #include "ultramodern/error_handling.hpp"
+ 
+diff --git a/ultramodern/src/events.cpp b/ultramodern/src/events.cpp
+index 17d7a47..055e990 100644
+--- a/ultramodern/src/events.cpp
++++ b/ultramodern/src/events.cpp
+@@ -13,6 +13,9 @@
+ 
+ #include "ultramodern/ultra64.h"
+ #include "ultramodern/ultramodern.hpp"
++#if defined(__PS4__)
++#include "ps4_platform.h"
++#endif
+ #include "ultramodern/extensions.h"
+ 
+ #include "ultramodern/rsp.hpp"
+@@ -210,6 +213,9 @@ void vi_thread_func() {
+             next = std::chrono::high_resolution_clock::now();
+         }
+         ultramodern::sleep_until(next);
++#if defined(__PS4__)
++        ps4_perf_begin(PS4_PERF_VI);
++#endif
+         auto time_now = ultramodern::time_since_start();
+         // Calculate how many VIs have passed
+         uint64_t new_total_vis = (time_now * (60 * ultramodern::get_speed_multiplier()) / 1000ms) + 1;
+@@ -257,6 +263,9 @@ void vi_thread_func() {
+         if (events_callbacks.vi_callback != nullptr) {
+             events_callbacks.vi_callback();
+         }
++#if defined(__PS4__)
++        ps4_perf_end(PS4_PERF_VI);
++#endif
+     }
+ }
+ 
+@@ -288,11 +297,17 @@ void task_thread_func(uint8_t* rdram, moodycamel::LightweightSemaphore* thread_r
+             return;
+         }
+ 
++#if defined(__PS4__)
++        ps4_perf_begin(PS4_PERF_AUDIO);
++#endif
+         if (!ultramodern::rsp::run_task(PASS_RDRAM task)) {
+             fprintf(stderr, "Failed to execute task type: %" PRIu32 "\n", task->t.type);
+             ULTRAMODERN_QUICK_EXIT();
+         }
+ 
++#if defined(__PS4__)
++        ps4_perf_end(PS4_PERF_AUDIO);
++#endif
+         // Tell the game that the RSP has completed
+         sp_complete();
+     }
+@@ -375,7 +390,13 @@ void gfx_thread_func(uint8_t* rdram, moodycamel::LightweightSemaphore* thread_re
+                 ultramodern::extensions::on_displaylist_submitted(displaylist);
+ 
+                 [[maybe_unused]] auto renderer_start = std::chrono::high_resolution_clock::now();
++#if defined(__PS4__)
++                ps4_perf_begin(PS4_PERF_DISPLAY_LIST);
++#endif
+                 renderer_context->send_dl(&task_action->task);
++#if defined(__PS4__)
++                ps4_perf_end(PS4_PERF_DISPLAY_LIST);
++#endif
+                 [[maybe_unused]] auto renderer_end = std::chrono::high_resolution_clock::now();
+ 
+                 dp_complete();
+diff --git a/ultramodern/src/threads.cpp b/ultramodern/src/threads.cpp
+index 6e3ed18..82b87fc 100644
+--- a/ultramodern/src/threads.cpp
++++ b/ultramodern/src/threads.cpp
+@@ -98,6 +98,40 @@ void ultramodern::set_native_thread_priority(ThreadPriority pri) {
+     }
+     // SetThreadPriority(GetCurrentThread(), nPriority);
+ }
++#elif defined(__PS4__)
++#include <pthread.h>
++
++#include "ps4_platform.h"
++
++void ultramodern::set_native_thread_name(const std::string& name) {
++    // the kernel's own name for the thread, and the port's (crash and freeze reports)
++    pthread_setname_np(pthread_self(), name.c_str());
++    ps4_thread_name(name.c_str());
++}
++
++void ultramodern::set_native_thread_priority(ThreadPriority pri) {
++    // above RT64's helpers and the shader compiles (ps4_platform.h): the game's threads (High),
++    // the timer (VeryHigh) and the VI thread (Critical) keep their time
++    switch (pri) {
++        case ThreadPriority::Low:
++            ps4_thread_role(PS4_ROLE_LOW);
++            break;
++        case ThreadPriority::Normal:
++            ps4_thread_role(PS4_ROLE_NORMAL);
++            break;
++        case ThreadPriority::High:
++            ps4_thread_role(PS4_ROLE_HIGH);
++            break;
++        case ThreadPriority::VeryHigh:
++            ps4_thread_role(PS4_ROLE_HIGHER);
++            break;
++        case ThreadPriority::Critical:
++            ps4_thread_role(PS4_ROLE_HIGHEST);
++            break;
++        default:
++            break;
++    }
++}
+ #elif defined(__linux__)
+ #include <sys/prctl.h>
+ 
